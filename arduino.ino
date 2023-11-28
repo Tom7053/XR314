@@ -25,7 +25,6 @@
 #define FRAMING_ERROR (1 << FE0)
 #define PARITY_ERROR (1 << UPE0)
 #define DATA_OVERRUN (1 << DOR0)
-int flag = 0;
 
 
 /*! \brief Fonction Main 
@@ -35,16 +34,6 @@ int main(void) {
   sei();
   //USART_Transmit(USART_Receive()+1);
   while (1) {
-    if (flag == 1) {
-      char status = UCSR0A;
-      char byteReceive = UDR0;
-      if ((status & (FRAMING_ERROR | PARITY_ERROR | DATA_OVERRUN)) == 0) {
-        USART_Transmit(byteReceive);
-      } else {
-        USART_putsln("!error");
-      }
-      flag = 0;
-    }
     _delay_ms(1);
   }
 }
@@ -85,7 +74,13 @@ unsigned char USART_Receive(void) {
 /*! \brief https://www.nongnu.org/avr-libc/user-manual/group__avr__interrupts.html
  */
 ISR(USART_RX_vect) {
-  flag = 1;
+  char status = UCSR0A;
+      char byteReceive = UDR0;
+      if ((status & (FRAMING_ERROR | PARITY_ERROR | DATA_OVERRUN)) == 0) {
+        USART_Transmit(byteReceive);
+      } else {
+        USART_putsln("error");
+      }
 }
 /*! \brief Fonction Transmission d'une chaine de caractères
  */
