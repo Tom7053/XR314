@@ -1,13 +1,14 @@
-#define F_CPU 16000000UL // Fréquence du CPU
-#define BAUD 9600 // Débit en bauds
-#define MYUBRR F_CPU/16/BAUD-1 // Calcul de la valeur d'UBRR
+#define F_CPU 16000000UL              // Fréquence du CPU
+#define BAUD 9600                     // Débit en bauds
+#define MYUBRR F_CPU / 16 / BAUD - 1  // Calcul de la valeur d'UBRR
 
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-volatile int flag = 0; // Variable pour indiquer la réception de données
-volatile char donnee; // Variable pour stocker les données reçues
+volatile int flag0 = 0;  // Variable pour indiquer la réception de données
+volatile int flag3 = 0;
+volatile char donnee;  // Variable pour stocker les données reçues
 
 // Initialisation de l'USART0
 void USART0_Init(unsigned int ubrr) {
@@ -28,13 +29,14 @@ void USART3_Init(unsigned int ubrr) {
   // Activation du récepteur et du transmetteur
   UCSR3B = (1 << RXEN3) | (1 << TXEN3) | (1 << RXCIE3);
   /* Configuration du format de trame : 8 bits de données, 1 bit de stop */
-  UCSR3C =  (1 << UCSZ31) | (1 << UCSZ30);
+  UCSR3C = (1 << UCSZ31) | (1 << UCSZ30);
 }
 
 // Transmission via USART0
 void USART0_Transmit(unsigned char data) {
   /* Attente du buffer de transmission vide */
-  while (!(UCSR0A & (1 << UDRE0)));
+  while (!(UCSR0A & (1 << UDRE0)))
+    ;
   /* Envoi des données dans le buffer */
   UDR0 = data;
 }
@@ -42,7 +44,8 @@ void USART0_Transmit(unsigned char data) {
 // Transmission via USART3
 void USART3_Transmit(unsigned char data) {
   /* Attente du buffer de transmission vide */
-  while (!(UCSR3A & (1 << UDRE3)));
+  while (!(UCSR3A & (1 << UDRE3)))
+    ;
   /* Envoi des données dans le buffer */
   UDR3 = data;
 }
@@ -50,7 +53,8 @@ void USART3_Transmit(unsigned char data) {
 // Réception via USART0
 unsigned char USART0_Receive(void) {
   /* Attente des données à recevoir */
-  while (!(UCSR0A & (1 << RXC0)));
+  while (!(UCSR0A & (1 << RXC0)))
+    ;
   /* Récupération et renvoi des données reçues */
   return UDR0;
 }
@@ -58,31 +62,36 @@ unsigned char USART0_Receive(void) {
 // Réception via USART3
 unsigned char USART3_Receive(void) {
   /* Attente des données à recevoir */
-  while (!(UCSR3A & (1 << RXC3)));
+  while (!(UCSR3A & (1 << RXC3)))
+    ;
   /* Récupération et renvoi des données reçues */
   return UDR3;
 }
 
 // Interruption pour la réception sur USART0
 ISR(USART0_RX_vect) {
-  flag = 1;
+  flag0 = 1;
 }
 
 // Interruption pour la réception sur USART3
 ISR(USART3_RX_vect) {
-  flag = 1;
+  flag3 = 1;
 }
 
 int main(void) {
-  USART0_Init(MYUBRR); // Initialisation de l'USART0
-  USART3_Init(MYUBRR); // Initialisation de l'USART3
-  sei(); // Activation des interruptions globales
-  
+  USART0_Init(MYUBRR);  // Initialisation de l'USART0
+  USART3_Init(MYUBRR);  // Initialisation de l'USART3
+  sei();                // Activation des interruptions globales
+
   while (1) {
-    if (flag) {
-      USART0_Transmit(USART3_Receive()); // Transmission des données reçues par USART3 via USART0
-      flag = 0;
+    if (flag0) {
+      USART0_Transmit(USART3_Receive());  // Transmission des données reçues par USART3 via USART0
+      flag0 = 0;
     }
-    _delay_ms(1); // Délai d'attente
+    if (flag3) {
+      USART3_Transmit(USART0_Receive());  // Transmission des données reçues par USART3 via USART0
+      flag3 = 0;
+    }
+    _delay_ms(1);  // Délai d'attente
   }
 }
