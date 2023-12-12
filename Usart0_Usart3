@@ -84,13 +84,13 @@ int main(void) {
   sei();                // Activation des interruptions globales
 
   while (1) {
-    if (flag0) {
-      USART0_Transmit(USART3_Receive());  // Transmission des données reçues par USART3 via USART0
-      flag0 = 0;
-    }
     if (flag3) {
-      USART3_Transmit(USART0_Receive());  // Transmission des données reçues par USART3 via USART0
+      USART0_Transmit(UDR3);  // Transmission des données reçues par USART3 via USART0
       flag3 = 0;
+    }
+    if (flag0) {
+      USART3_Transmit(UDR0);  // Transmission des données reçues par USART3 via USART0
+      flag0 = 0;
     }
     _delay_ms(1);  // Délai d'attente
   }
